@@ -1,0 +1,11 @@
+
+# Specify the names of your NSSM services
+$services = @("aividVLMSBot", "aividPortal", "MongoDB", "mosquitto")
+
+# Stop and remove NSSM services
+foreach ($service in $services) {
+    .\nssm stop $service
+    .\nssm remove $service confirm
+}
+
+Remove-Item -Path ../../VLMS -Recurse -Force
