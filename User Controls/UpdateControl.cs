@@ -70,11 +70,15 @@ namespace VLMS.User_Controls
                 return false;
 
         }
-        private List<string> GetNonMatchingKeys( Dictionary<string, string> dict1, Dictionary<string, string> dict2 )
+        private List<string> GetNonMatchingKeys(   )
         {
             List<string> nonMatchingKeys = new List<string>();
 
+            Dictionary<string, string> dict1 = clientDirectory;
+            Dictionary<string, string> dict2 = awsDirectory;
             string labelText = string.Empty;
+
+
             foreach (var kvp in dict1)
             {
                 // Construct the string
@@ -263,7 +267,7 @@ namespace VLMS.User_Controls
             }
             */
         }
-           private async Task DownloadAndExtractZipFromS3( string bucketName, string objectKey, string destinationPath )
+           private async Task DownloadAndExtractZipFromS3(  string objectKey )
         {
             using (var client = new AmazonS3Client())
             {
@@ -272,7 +276,7 @@ namespace VLMS.User_Controls
                     BucketName = bucketName,
                     Key = objectKey
                 };
-
+                string destinationPath = Properties.Settings.Default.baseVlmsPath;
                 using (var response = await client.GetObjectAsync(request))
                 {
                     // Create a temporary file to download the zip
@@ -334,7 +338,7 @@ namespace VLMS.User_Controls
                 await Task.Run(async () =>
                 {
 
-                    await DownloadAndExtractZipFromS3(bucketName, key, destinationPath);
+                   // await DownloadAndExtractZipFromS3(bucketName, key, destinationPath);
                     //await UpdateManager.UnzipS3ObjectAsync(bucketName, key, destinationPath);
                 });
                 LogME(key + " unzipped successfully!");
@@ -408,8 +412,14 @@ namespace VLMS.User_Controls
         private async void UpdateToThisVersion (string version)
         {
           await  GetLatestVersionsFromS3(version);
-       //     GetNonMatchingKeys();
-//
+            List<string> avialableUpdates =    GetNonMatchingKeys();
+            foreach (string key in avialableUpdates)
+            {
+                string ObjectKey = "VLMS/" + version + "/" + key;
+                await DownloadAndExtractZipFromS3(ObjectKey);
+
+            }
+            //
         }
         private void btn_uninstall_Click( object sender, EventArgs e )
         {
