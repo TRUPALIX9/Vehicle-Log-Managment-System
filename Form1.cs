@@ -86,7 +86,7 @@ namespace VLMS
         }
         public static bool SetIsInstalledSetting()
         {
-            string[] serviceNamae = { "aividVLMSBot", "aividPortal", "MongoDB", "mosquitto" };
+            string[] serviceNamae = Global.serviceNames;
             bool areAllServicesPresent = ServiceManager.AreAllServicesPresent(serviceNamae);
 
             if (areAllServicesPresent)

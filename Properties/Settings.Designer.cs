@@ -25,7 +25,7 @@ namespace VLMS.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("C:\\Program Files\\VLMS")]
+        [global::System.Configuration.DefaultSettingValueAttribute("C:\\Program Files\\Gatelog")]
         public string baseVlmsPath {
             get {
                 return ((string)(this["baseVlmsPath"]));

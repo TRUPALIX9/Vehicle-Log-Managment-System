@@ -47,7 +47,7 @@ namespace VLMS
             // 
             // titleBarPanel
             // 
-            titleBarPanel.BackColor = Color.FromArgb(0, 146, 203);
+            titleBarPanel.BackColor = Color.FromArgb(23, 28, 33);
             titleBarPanel.BorderStyle = BorderStyle.FixedSingle;
             titleBarPanel.Controls.Add(button1);
             titleBarPanel.Controls.Add(lbl_title);
@@ -65,13 +65,13 @@ namespace VLMS
             // button1
             // 
             button1.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            button1.BackColor = Color.FromArgb(0, 146, 203);
+            button1.BackColor = Color.FromArgb(23, 28, 33);
             button1.BackgroundImageLayout = ImageLayout.None;
             button1.Cursor = Cursors.Hand;
             button1.Dock = DockStyle.Right;
             button1.FlatStyle = FlatStyle.Flat;
             button1.Font = new Font("Arial", 12F, FontStyle.Bold, GraphicsUnit.Point);
-            button1.ForeColor = Color.FromArgb(0, 146, 203);
+            button1.ForeColor = Color.FromArgb(23, 28, 33);
             button1.Image = (Image)resources.GetObject("button1.Image");
             button1.ImeMode = ImeMode.NoControl;
             button1.Location = new Point(830, 0);
@@ -98,19 +98,19 @@ namespace VLMS
             lbl_title.RightToLeft = RightToLeft.No;
             lbl_title.Size = new Size(296, 26);
             lbl_title.TabIndex = 3;
-            lbl_title.Text = "AIVID Vehicle Log Managment System ";
+            lbl_title.Text = "Gatelog Server Setup";
             lbl_title.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // btn_close
             // 
             btn_close.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            btn_close.BackColor = Color.FromArgb(0, 146, 203);
+            btn_close.BackColor = Color.FromArgb(23, 28, 33);
             btn_close.BackgroundImageLayout = ImageLayout.None;
             btn_close.Cursor = Cursors.Hand;
             btn_close.Dock = DockStyle.Right;
             btn_close.FlatStyle = FlatStyle.Flat;
             btn_close.Font = new Font("Arial", 12F, FontStyle.Bold, GraphicsUnit.Point);
-            btn_close.ForeColor = Color.FromArgb(0, 146, 203);
+            btn_close.ForeColor = Color.FromArgb(23, 28, 33);
             btn_close.Image = (Image)resources.GetObject("btn_close.Image");
             btn_close.ImeMode = ImeMode.NoControl;
             btn_close.Location = new Point(867, 0);
@@ -167,7 +167,7 @@ namespace VLMS
             copyrightLabel.RightToLeft = RightToLeft.No;
             copyrightLabel.Size = new Size(341, 21);
             copyrightLabel.TabIndex = 3;
-            copyrightLabel.Text = "© 2023 - All Rights Reserved AIVIDTechVision.";
+            copyrightLabel.Text = "© 2024 Gatelog - Proof of concept";
             copyrightLabel.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // kryptonCustomPaletteBase1
@@ -213,7 +213,7 @@ namespace VLMS
             Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "Form1";
             StartPosition = FormStartPosition.CenterScreen;
-            Text = "Form1";
+            Text = "Gatelog Server Setup";
             Load += Form1_Load;
             titleBarPanel.ResumeLayout(false);
             bottomPanel.ResumeLayout(false);

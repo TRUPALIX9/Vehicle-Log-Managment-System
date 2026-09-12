@@ -3,7 +3,7 @@
   <Profiles />
   <Settings>
     <Setting Name="baseVlmsPath" Type="System.String" Scope="User">
-      <Value Profile="(Default)">C:\Program Files\VLMS</Value>
+      <Value Profile="(Default)">C:\Program Files\Gatelog</Value>
     </Setting>
     <Setting Name="isInstalled" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>

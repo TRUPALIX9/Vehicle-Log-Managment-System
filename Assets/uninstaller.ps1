@@ -1,6 +1,6 @@
 
 # Specify the names of your NSSM services
-$services = @("aividVLMSBot", "aividPortal", "MongoDB", "mosquitto")
+$services = @("gatelogBot", "gatelogPortal", "MongoDB", "mosquitto")
 
 # Stop and remove NSSM services
 foreach ($service in $services) {

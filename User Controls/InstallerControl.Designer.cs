@@ -53,7 +53,7 @@
             lbl_title.Name = "lbl_title";
             lbl_title.Size = new Size(309, 25);
             lbl_title.TabIndex = 15;
-            lbl_title.Text = "Installing AIVID VLMS, Please wait...";
+            lbl_title.Text = "Installing Gatelog, Please wait...";
             // 
             // lbl_logs
             // 

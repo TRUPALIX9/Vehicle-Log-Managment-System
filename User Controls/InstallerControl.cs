@@ -40,7 +40,7 @@ namespace VLMS
         }
         private void btn_next_Click( object sender, EventArgs e )
         {
-            string pathWithVLMS = Path.Combine(globalVLMSStoragePath, "VLMS");
+            string pathWithVLMS = Path.Combine(globalVLMSStoragePath, Global.installFolderName);
             globalVLMSStoragePath = pathWithVLMS;
             if (!isInstallationStarted)
             {
@@ -54,7 +54,7 @@ namespace VLMS
                 isInstallationStarted = true;
                 btn_continue_finish.Enabled = false;
                 btn_continue_finish.Text = "Finish";
-                lbl_title.Text = "Installing AIVID VLMS, Please wait...";
+                lbl_title.Text = $"Installing {Global.productName}, Please wait...";
                 progressBar.Visible = true;
                 toggleShow(true);
                 _ = RunInstaller();
@@ -164,8 +164,8 @@ namespace VLMS
         {
             isInstallationComplete = true;
             btn_continue_finish.Enabled = true;
-            lbl_title.Text = "Installation Completed For AIVID VLMS";
-            lbl_logs.Text = "Click Finish to Open Vehical Log Mangment System";
+            lbl_title.Text = $"Installation Completed For {Global.productName}";
+            lbl_logs.Text = $"Click Finish to open the {Global.productName} portal";
 
         }
         #endregion
@@ -200,9 +200,9 @@ namespace VLMS
                 await Task.Run(() => ExtractZip(Global.botExtensoin));
                 // Step 8
                 UpdateControls("Setting Up Portal services", 93);
-                InstallService("aividPortal", Path.Combine(globalVLMSStoragePath, $"{Global.portalExtensoin}\\vlms") );
+                InstallService(Global.portalServiceName, Path.Combine(globalVLMSStoragePath, $"{Global.portalExtensoin}\\vlms") );
                 UpdateControls("Setting Up Portal services", 98);
-                InstallService("aividVLMSBot", Path.Combine(globalVLMSStoragePath, $"{Global.botExtensoin}\\{Global.botExtensoin}") );
+                InstallService(Global.botServiceName, Path.Combine(globalVLMSStoragePath, $"{Global.botExtensoin}\\{Global.botExtensoin}") );
                 UpdateControls("Installation Complete", 100);
                 WriteToEventLog("-----DONE------");
                 afterInstalltion();
@@ -239,11 +239,11 @@ namespace VLMS
                 CreateDirectoryIfNotExists(dataDirectory);
                 CreateDirectoryIfNotExists(mongoLogsDirectory);
                 // Configure MongoDB as a service
-                string installCommand = $"--auth --bind_ip {ipAddress} --port {port} --install -dbpath \"{dataDirectory}\" --logpath \"{mongoLogsDirectory}\\mongodb.log\" --serviceName MongoDB --serviceDisplayName MongoDBAIVID";
+                string installCommand = $"--auth --bind_ip {ipAddress} --port {port} --install -dbpath \"{dataDirectory}\" --logpath \"{mongoLogsDirectory}\\mongodb.log\" --serviceName MongoDB --serviceDisplayName MongoDBGatelog";
                 ExecuteCommandAndLog(installCommand, Path.Combine(mongoBinDirectory, "mongod"), installCommand);
                 // Start MongoDB service
                 string startServiceCommand = "net start MongoDB";
-                ExecuteCommandAndLog("starting MongoDBAIVID service...", "cmd.exe", $"/c {startServiceCommand}");
+                ExecuteCommandAndLog("starting MongoDBGatelog service...", "cmd.exe", $"/c {startServiceCommand}");
     
             }
             catch (Exception ex)

@@ -15,7 +15,7 @@ namespace VLMS.User_Controls
     {
 
         #region Global Variables
-        private const string bucketName = "aivid-vlms-anpr-det";
+        private static readonly string bucketName = Global.updateBucketName;
         private readonly IAmazonS3 s3Client;
 
         Dictionary<string, string> clientDirectory = new Dictionary<string, string>();
@@ -29,7 +29,7 @@ namespace VLMS.User_Controls
         public UpdateControl()
         {
             InitializeComponent();
-            s3Client = new AmazonS3Client(RegionEndpoint.APSouth1);
+            s3Client = new AmazonS3Client(RegionEndpoint.GetBySystemName(Global.updateRegion));
         }
 
         private void UpdateControl_Load( object sender, EventArgs e )
@@ -123,10 +123,10 @@ namespace VLMS.User_Controls
                     string jsonData = File.ReadAllText(jsonFilePath);
                     //  richTextBox1.Text = jsonData;
                     DataModel dataModel = System.Text.Json.JsonSerializer.Deserialize<DataModel>(jsonData);
-                    versionDictionary.Add("nextjs_anpr", (dataModel.nextjs_anpr, dataModel.nextjs_anpr));
-                    versionDictionary.Add("aividVlms", (dataModel.aividVlms, dataModel.aividVlms));
-                    AddIfNotExsists("nextjs_anpr", dataModel.nextjs_anpr, clientDirectory);
-                    AddIfNotExsists("aividVlms", dataModel.aividVlms, clientDirectory);
+                    versionDictionary.Add(Global.portalExtensoin, (dataModel.nextjs_anpr, dataModel.nextjs_anpr));
+                    versionDictionary.Add(Global.botExtensoin, (dataModel.gatelogBot, dataModel.gatelogBot));
+                    AddIfNotExsists(Global.portalExtensoin, dataModel.nextjs_anpr, clientDirectory);
+                    AddIfNotExsists(Global.botExtensoin, dataModel.gatelogBot, clientDirectory);
                 }
                 else
                 {
