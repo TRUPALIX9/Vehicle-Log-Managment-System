@@ -7,10 +7,10 @@
 <p align="center">
   <a href="https://trupalpatel.com/projects/vehicle-log"><img src="https://img.shields.io/badge/Case_study-trupalpatel.com-F2C200?style=flat-square&amp;labelColor=050505" alt="Case study" /></a>
   <img src="https://img.shields.io/badge/Status-Proof_of_concept-7A5A00?style=flat-square" alt="Status: proof of concept" />
-  <img src="https://img.shields.io/badge/.NET_6-WinForms-512BD4?style=flat-square&amp;logo=dotnet&amp;logoColor=white" alt=".NET 6 WinForms" />
-  <img src="https://img.shields.io/badge/MongoDB-7-47A248?style=flat-square&amp;logo=mongodb&amp;logoColor=white" alt="MongoDB 7" />
-  <img src="https://img.shields.io/badge/Eclipse_Mosquitto-MQTT-3C5280?style=flat-square&amp;logo=eclipsemosquitto&amp;logoColor=white" alt="Eclipse Mosquitto" />
-  <img src="https://img.shields.io/badge/Amazon_S3-updates-569A31?style=flat-square&amp;logo=amazons3&amp;logoColor=white" alt="Amazon S3" />
+  <img src="https://img.shields.io/badge/.NET_6_WinForms-512BD4?style=flat-square&amp;logo=dotnet&amp;logoColor=white" alt=".NET 6 WinForms" />
+  <img src="https://img.shields.io/badge/MongoDB_7-47A248?style=flat-square&amp;logo=mongodb&amp;logoColor=white" alt="MongoDB 7" />
+  <img src="https://img.shields.io/badge/Eclipse_Mosquitto-3C5280?style=flat-square&amp;logo=eclipsemosquitto&amp;logoColor=white" alt="Eclipse Mosquitto" />
+  <img src="https://img.shields.io/badge/Amazon_S3-569A31?style=flat-square&amp;logo=amazons3&amp;logoColor=white" alt="Amazon S3" />
 </p>
 
 <p align="center">
