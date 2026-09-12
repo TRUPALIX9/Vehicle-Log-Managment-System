@@ -64,6 +64,8 @@ namespace VLMS
             // 
             // button1
             // 
+            button1.AccessibleDescription = "Minimize the window";
+            button1.AccessibleName = "Minimize";
             button1.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             button1.BackColor = Color.FromArgb(23, 28, 33);
             button1.BackgroundImageLayout = ImageLayout.None;
@@ -103,6 +105,8 @@ namespace VLMS
             // 
             // btn_close
             // 
+            btn_close.AccessibleDescription = "Close the setup window";
+            btn_close.AccessibleName = "Close";
             btn_close.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             btn_close.BackColor = Color.FromArgb(23, 28, 33);
             btn_close.BackgroundImageLayout = ImageLayout.None;
