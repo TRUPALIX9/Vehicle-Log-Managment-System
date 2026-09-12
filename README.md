@@ -146,7 +146,7 @@ powershell -ExecutionPolicy Bypass -File Assets\uninstaller.ps1 -InstallPath "C:
 
 - The payload archives and `createUser.js` are not in the repository, so a clone cannot perform a real install.
 - The Uninstall button explains how to run `Assets/uninstaller.ps1`; uninstall is not built into the app.
-- Exit codes from `mongod`, `nssm` and `sc` are logged but not checked.
+- Output from `mongod`, `nssm`, `sc` and `net start` goes to the log, but their exit codes are not checked, so a command that fails without throwing does not stop the install.
 - No license file; licensing for this code is unspecified. The bundled notice (`Setups/EULA.docx`) is not a license agreement.
 
 ## Project structure
