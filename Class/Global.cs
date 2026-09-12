@@ -21,8 +21,15 @@ namespace VLMS
         public static string[] serviceNames = { botServiceName, portalServiceName, "MongoDB", "mosquitto" };
 
         // Update channel (S3). Configure with environment variables; see .env.example.
-        public static string updateBucketName = Environment.GetEnvironmentVariable("GATELOG_UPDATE_BUCKET") ?? string.Empty;
-        public static string updateRegion = Environment.GetEnvironmentVariable("GATELOG_UPDATE_REGION") ?? "us-east-1";
-        public static string updatePrefix = Environment.GetEnvironmentVariable("GATELOG_UPDATE_PREFIX") ?? "releases";
+        // Blank values count as unset, so an empty GATELOG_UPDATE_REGION still falls back to us-east-1.
+        public static string updateBucketName = EnvOrDefault("GATELOG_UPDATE_BUCKET", string.Empty);
+        public static string updateRegion = EnvOrDefault("GATELOG_UPDATE_REGION", "us-east-1");
+        public static string updatePrefix = EnvOrDefault("GATELOG_UPDATE_PREFIX", "releases").Trim('/');
+
+        private static string EnvOrDefault( string name, string fallback )
+        {
+            string? value = Environment.GetEnvironmentVariable(name);
+            return string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
+        }
     }
 }

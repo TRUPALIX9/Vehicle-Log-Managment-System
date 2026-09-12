@@ -33,9 +33,9 @@
     <Content Include="nssm.exe">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Resource Include="Assets\uninstaller.ps1">
+    <Content Include="Assets\uninstaller.ps1">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
