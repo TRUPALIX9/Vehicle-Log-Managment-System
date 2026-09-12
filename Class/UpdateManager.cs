@@ -18,14 +18,14 @@ namespace VLMS.Class
 {
     internal class UpdateManager
     {
-        private static string filePath = Properties.Settings.Default.baseVlmsPath;
+        // Full path of config.json (SaveConfig writes here)
+        private static string filePath = Path.Combine(Properties.Settings.Default.baseVlmsPath, "config.json");
         private static Dictionary<string, string> configData;
-        private const string bucketName = "aivid-vlms-anpr-det";
 
-        public static void CreateConfigFileIfNotExists( string basePath = "C:\\Program Files\\VLMS" )
+        public static void CreateConfigFileIfNotExists( string basePath = "C:\\Program Files\\Gatelog" )
         {
-            UpdaeteFilePath(basePath);
             string configPath = Path.Combine(basePath, "config.json");
+            UpdaeteFilePath(configPath);
 
             // Check if config.json already exists
             if (File.Exists(configPath))
@@ -34,14 +34,15 @@ namespace VLMS.Class
                 return;
             }
             // Config values
-            var configData = new
+            var defaultConfig = new
             {
                 mainVersion="1.0.0",
                 nextjs_anpr = "1.0.0",
-                aividVlms = "1.0.0",
+                gatelogBot = "1.0.0",
             };
-            // Write config to file
-            File.WriteAllText(configPath, JsonConvert.SerializeObject(configData, Formatting.Indented));
+            // Write config to file, then load it so GetValue/SetValue have data on first run
+            File.WriteAllText(configPath, JsonConvert.SerializeObject(defaultConfig, Formatting.Indented));
+            LoadConfig(configPath);
             MessageBox.Show($"config.json created at {configPath}");
         }
 
@@ -58,15 +59,15 @@ namespace VLMS.Class
                // CreateConfigFileIfNotExists(Properties.Settings.Default.baseVlmsPath);
             }
         }
-        public static void UpdaeteFilePath( string vlmsPath )
+        public static void UpdaeteFilePath( string configPath )
         {
-            filePath = vlmsPath;
+            filePath = configPath;
         }
 
         public static string GetValue( string key )
         {
             CreateConfigFileIfNotExists(Properties.Settings.Default.baseVlmsPath);
-            if (configData.ContainsKey(key))
+            if (configData != null && configData.ContainsKey(key))
             {
                 return configData[key];
             }
@@ -78,6 +79,11 @@ namespace VLMS.Class
 
         public static void SetValue( string key, string value )
         {
+            if (configData == null)
+            {
+                CreateConfigFileIfNotExists(Properties.Settings.Default.baseVlmsPath);
+            }
+            configData ??= new Dictionary<string, string>();
             configData[key] = value;
             SaveConfig();
         }
@@ -109,12 +115,12 @@ namespace VLMS.Class
                         {
                             string serviceCommand = imagePath.ToString().Trim('"');
 
-                            int vlmsIndex = serviceCommand.IndexOf("VLMS");
+                            int vlmsIndex = serviceCommand.IndexOf(Global.installFolderName);
 
                             if (vlmsIndex != -1)
                             {
-                                // Extract the substring from the beginning of the command until "VLMS"
-                                string extractedPath = serviceCommand.Substring(0, vlmsIndex + 4);
+                                // Extract the substring from the beginning of the command until the install folder name
+                                string extractedPath = serviceCommand.Substring(0, vlmsIndex + Global.installFolderName.Length);
                                 CreateConfigFileIfNotExists(extractedPath);
                                 Properties.Settings.Default.baseVlmsPath = extractedPath;
                                 Properties.Settings.Default.Save();
@@ -142,9 +148,9 @@ namespace VLMS.Class
         }
         public  static async Task UnzipS3ObjectAsync( string objectKey, string destinationPath )
         {
-            using (var s3Client = new AmazonS3Client(RegionEndpoint.APSouth1))
+            using (var s3Client = new AmazonS3Client(RegionEndpoint.GetBySystemName(Global.updateRegion)))
             {
-                var request = new GetObjectRequest { BucketName =bucketName, Key = objectKey };
+                var request = new GetObjectRequest { BucketName = Global.updateBucketName, Key = objectKey };
                 MessageBox.Show(objectKey);
                 using var response = await s3Client.GetObjectAsync(request);
                 using var zip = new ZipArchive(response.ResponseStream, ZipArchiveMode.Read);

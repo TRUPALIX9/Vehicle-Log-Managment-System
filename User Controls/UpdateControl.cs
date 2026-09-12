@@ -1,4 +1,4 @@
-﻿using Amazon;
+using Amazon;
 using Amazon.S3;
 using Amazon.S3.Model;
 using System.Data;
@@ -15,8 +15,10 @@ namespace VLMS.User_Controls
     {
 
         #region Global Variables
-        private const string bucketName = "aivid-vlms-anpr-det";
-        private readonly IAmazonS3 s3Client;
+        private static readonly string bucketName = Global.updateBucketName;
+        // Created on first use: the AWS SDK resolves credentials when the client is built,
+        // and this control is created at startup even on machines without AWS credentials.
+        private IAmazonS3? s3Client;
 
         Dictionary<string, string> clientDirectory = new Dictionary<string, string>();
         Dictionary<string, string> awsDirectory = new Dictionary<string, string>();
@@ -29,18 +31,36 @@ namespace VLMS.User_Controls
         public UpdateControl()
         {
             InitializeComponent();
-            s3Client = new AmazonS3Client(RegionEndpoint.APSouth1);
         }
 
         private void UpdateControl_Load( object sender, EventArgs e )
         {
             CheckForUpdate();
-            //  PopulateComboBox("trupal-ix", "VLMS/", RegionEndpoint.APSouth1); // Call the function with your parameters
         }
         #endregion
 
 
-        #region Helpers 
+        #region Helpers
+
+        private IAmazonS3 GetS3Client()
+        {
+            if (s3Client == null)
+            {
+                s3Client = new AmazonS3Client(RegionEndpoint.GetBySystemName(Global.updateRegion));
+            }
+            return s3Client;
+        }
+
+        // Release objects are laid out as <prefix>/<version>/<component>.zip
+        private static string ObjectKeyFor( string version, string key )
+        {
+            return $"{Global.updatePrefix}/{version}/{key}.zip";
+        }
+
+        private static string ServiceNameFor( string key )
+        {
+            return key == Global.portalExtensoin ? Global.portalServiceName : Global.botServiceName;
+        }
 
         private void AddIfNotExsists( string key, string value, Dictionary<string, string> dict )
         {
@@ -55,20 +75,13 @@ namespace VLMS.User_Controls
         }
         public static bool Compare( string clientVersion, string awsS3Version )
         {
-            // Split version strings into arrays of integers
-            var awsVer = new Version(awsS3Version);
-            var clientVer = new Version(clientVersion);
-
-            var result = awsVer.CompareTo(clientVer);
-            if (result > 0)
-                return true;
-            ///AWS Version is higher 
-            //  else if (result < 0)
-            //      return true;
-            ///Client Version is highet 
-            else
+            // True when the S3 version is newer than the client version.
+            // Version-based, so 1.10.0 sorts after 1.9.0; folders that are not versions are ignored.
+            if (!Version.TryParse(awsS3Version, out var awsVer) || !Version.TryParse(clientVersion, out var clientVer))
+            {
                 return false;
-
+            }
+            return awsVer.CompareTo(clientVer) > 0;
         }
         private List<string> GetNonMatchingKeys(   )
         {
@@ -81,18 +94,11 @@ namespace VLMS.User_Controls
 
             foreach (var kvp in dict1)
             {
-                // Construct the string
+                bool found = dict2.TryGetValue(kvp.Key, out var value2);
                 labelText += $"{kvp.Key}:\n";
                 labelText += $"   Current Version: {kvp.Value}\n";
-                labelText += $"   Available Version: {dict2[kvp.Key]}\n\n"; // 
-                if (dict2.TryGetValue(kvp.Key, out var value2))
-                {
-                    if (!string.Equals(kvp.Value, value2))
-                    {
-                        nonMatchingKeys.Add(kvp.Key);
-                    }
-                }
-                else
+                labelText += $"   Available Version: {(found ? value2 : "not found")}\n\n";
+                if (!found || !string.Equals(kvp.Value, value2))
                 {
                     nonMatchingKeys.Add(kvp.Key);
                 }
@@ -111,22 +117,21 @@ namespace VLMS.User_Controls
         }
         #endregion
 
-        #region Load Config and GetVersions 
+        #region Load Config and GetVersions
 
         private void LoadConfigJson()
         {
             try
             {
-                string jsonFilePath = Path.Combine(Properties.Settings.Default.baseVlmsPath, "config.json"); // Replace with your JSON file path
+                string jsonFilePath = Path.Combine(Properties.Settings.Default.baseVlmsPath, "config.json");
                 if (File.Exists(jsonFilePath))
                 {
                     string jsonData = File.ReadAllText(jsonFilePath);
-                    //  richTextBox1.Text = jsonData;
                     DataModel dataModel = System.Text.Json.JsonSerializer.Deserialize<DataModel>(jsonData);
-                    versionDictionary.Add("nextjs_anpr", (dataModel.nextjs_anpr, dataModel.nextjs_anpr));
-                    versionDictionary.Add("aividVlms", (dataModel.aividVlms, dataModel.aividVlms));
-                    AddIfNotExsists("nextjs_anpr", dataModel.nextjs_anpr, clientDirectory);
-                    AddIfNotExsists("aividVlms", dataModel.aividVlms, clientDirectory);
+                    versionDictionary[Global.portalExtensoin] = (dataModel.nextjs_anpr, dataModel.nextjs_anpr);
+                    versionDictionary[Global.botExtensoin] = (dataModel.gatelogBot, dataModel.gatelogBot);
+                    AddIfNotExsists(Global.portalExtensoin, dataModel.nextjs_anpr, clientDirectory);
+                    AddIfNotExsists(Global.botExtensoin, dataModel.gatelogBot, clientDirectory);
                 }
                 else
                 {
@@ -138,58 +143,41 @@ namespace VLMS.User_Controls
                 MessageBox.Show($"Error: {ex.Message}");
             }
         }
-        private async Task GetLatestVersionsFromS3(string version)
+        private async Task<bool> GetLatestVersionsFromS3( string version )
         {
             try
             {
-                string nextjsKey = Global.portalExtensoin;
-                string aividVlmsKey = Global.botExtensoin;
-                var getObjectTaggingRequestNextjs = new GetObjectTaggingRequest
-                {
-                    BucketName = bucketName,
-                    Key = "VLMS/" + version +"/"+ nextjsKey + ".zip"
-                };
-                var getObjectTaggingRequestAividVlms = new GetObjectTaggingRequest
-                {
-                    BucketName = bucketName,
-                    Key = "VLMS/" + version + "/" + aividVlmsKey + ".zip"
-                };
-                var getObjectTaggingRequestNextjsResponse = await s3Client.GetObjectTaggingAsync(getObjectTaggingRequestNextjs);
-                var getObjectTaggingRequestAividVlmsResponse = await s3Client.GetObjectTaggingAsync(getObjectTaggingRequestAividVlms);
-                // Print the entire response
-                //  richTextBox1.Text += ($"Response: {JsonConvert.SerializeObject(getObjectTaggingResponse, Formatting.Indented)}");
                 awsDirectory.Clear();
-                AddIfNotExsists(nextjsKey, getObjectTaggingRequestNextjsResponse.Tagging[0].Value, awsDirectory);
-                AddIfNotExsists(aividVlmsKey, getObjectTaggingRequestAividVlmsResponse.Tagging[0].Value, awsDirectory);
+                foreach (string key in new[] { Global.portalExtensoin, Global.botExtensoin })
+                {
+                    var getObjectTaggingRequest = new GetObjectTaggingRequest
+                    {
+                        BucketName = bucketName,
+                        Key = ObjectKeyFor(version, key)
+                    };
+                    var response = await GetS3Client().GetObjectTaggingAsync(getObjectTaggingRequest);
+                    if (response.Tagging.Count > 0)
+                    {
+                        AddIfNotExsists(key, response.Tagging[0].Value, awsDirectory);
+                    }
+                }
+                return true;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error: {ex.Message}");
+                LogME($"Could not read component versions for release {version}: {ex.Message}");
+                return false;
             }
         }
 
         #endregion
 
-        #region Update Ui Function  
-        #endregion
-
-        #region checkForUpdate Funtion  
+        #region checkForUpdate Funtion
         private void CheckForUpdate()
         {
             //Load Client side Config.Json in Directory
             LoadConfigJson();
-            PopulateComboBox(); // Call the function with your parameters
-
-            // Wait for both tasks to complete
-            // await Task.WhenAll(GetLatestVersionFromS3("nextjs_anpr"), GetLatestVersionFromS3("aividVlms"));
-            //  ShowDictionaryInMessageBox(clientDirectory);
-            // ShowDictionaryInMessageBox(awsDirectory);
-            // Extract the keys which versions doesnt match
-            //availableUpdates = GetNonMatchingKeys(clientDirectory, awsDirectory);
-            // enable update buttons;
-            // btn_Update.Enabled = availableUpdates.Count > 0;
-            // Display the non-matching keys in the RichTextBox or any other control
-
+            PopulateComboBox();
         }
         #endregion
         static void ShowDictionaryInMessageBox( Dictionary<string, string> dictionary )
@@ -215,7 +203,7 @@ namespace VLMS.User_Controls
             }
             else
             {
-                kryptonRichTextBox1.Text += Environment.NewLine + message + Environment.NewLine;
+                kryptonRichTextBox1.AppendText($"{DateTime.Now:dd-MM-yyyy HH:mm:ss} : {message}{Environment.NewLine}");
             }
         }
 
@@ -233,97 +221,61 @@ namespace VLMS.User_Controls
         private void btn_Update_Click( object sender, EventArgs e )
         {
             UpdateToThisVersion(comboBox1.Text);
-            /*
-            foreach (var kvp in availableUpdates)
-            {
-                btn_Update.Enabled = false;
-                btn_Update.Text = " Donwloading...";
-                LogME("Starting Process for and stopping service:   " + kvp);
-                ServiceManager.StopExistingService(kvp == "nextjs_anpr" ? "aividPortal" : "aividVLMSBot");
-                ServiceManager.WaitForServiceToStart(kvp == "nextjs_anpr" ? "aividPortal" : "aividVLMSBot", System.ServiceProcess.ServiceControllerStatus.Stopped);
-                Task.Run(async () =>
-                {
-                    // Execute the loop body asynchronously
-                    if (await UpdateKeyObjectZip(kvp))
-                    {
-                        // Update UI components using Invoke
-                        this.Invoke((MethodInvoker)delegate
-                        {
-                            ServiceManager.StartExistingService(kvp == "nextjs_anpr" ? "aividPortal" : "aividVLMSBot");
-                            ServiceManager.WaitForServiceToStart(kvp, System.ServiceProcess.ServiceControllerStatus.Running);
-                            LogME("Completed Process for and Starting service :  " + kvp);
-                            btn_Update.Text = "Update";
-                        });
-                    }
-                    else
-                    {
-                        // Update UI components using Invoke
-                        this.Invoke((MethodInvoker)delegate
-                        {
-                            LogME("UpdateKeyObjectZip failed for " + kvp);
-                        });
-                    }
-                });
-            }
-            */
         }
            private async Task DownloadAndExtractZipFromS3(  string objectKey )
         {
-            using (var client = new AmazonS3Client())
+            var request = new GetObjectRequest
             {
-                var request = new GetObjectRequest
+                BucketName = bucketName,
+                Key = objectKey
+            };
+            string destinationPath = Properties.Settings.Default.baseVlmsPath;
+            using (var response = await GetS3Client().GetObjectAsync(request))
+            {
+                // Create a temporary file to download the zip
+                string tempZipFilePath = Path.GetTempFileName();
+                LogME($"Downloading {objectKey} to {tempZipFilePath}");
+                using (var fileStream = File.Create(tempZipFilePath))
                 {
-                    BucketName = bucketName,
-                    Key = objectKey
-                };
-                string destinationPath = Properties.Settings.Default.baseVlmsPath;
-                using (var response = await client.GetObjectAsync(request))
-                {
-                    // Create a temporary file to download the zip
-                    string tempZipFilePath = Path.GetTempFileName();
-                    LogME(tempZipFilePath);
-                    using (var fileStream = File.Create(tempZipFilePath))
-                    {
-                        await response.ResponseStream.CopyToAsync(fileStream);
-                    }
-
-                    // Extract the contents of the zip file to the destination path in parallel
-                    using (var archive = ZipFile.OpenRead(tempZipFilePath))
-                    {
-                        int totalEntries = archive.Entries.Count;
-                        int processedEntries = 0;
-                        foreach (var entry in archive.Entries)
-                        {
-                            // Combine the destination path with the entry's relative path
-                            string entryDestinationPath = Path.Combine(destinationPath, entry.FullName);
-
-                            // If the entry is a directory, create it
-                            if (entry.FullName.EndsWith("/"))
-                            {
-                                Directory.CreateDirectory(entryDestinationPath);
-                            }
-                            else
-                            {
-                                // Ensure the directory structure for the entry exists
-                                Directory.CreateDirectory(Path.GetDirectoryName(entryDestinationPath));
-
-                                // Extract the entry to the destination path
-                                entry.ExtractToFile(entryDestinationPath, true);
-                            }
-                            processedEntries++;
-                            // Calculate progress percentage
-                            int progressPercentage = (int)((processedEntries * 100) / totalEntries);
-
-                            // Update the progress bar
-                            progressBar.Invoke((MethodInvoker)delegate
-                            {
-                                progressBar.Value = progressPercentage;
-                            });
-                        }
-                    }
-                    // Cleanup: delete the temporary zip file
-                    File.Delete(tempZipFilePath);
+                    await response.ResponseStream.CopyToAsync(fileStream);
                 }
+
+                // Extract the contents of the zip file over the install folder
+                using (var archive = ZipFile.OpenRead(tempZipFilePath))
+                {
+                    int totalEntries = archive.Entries.Count;
+                    int processedEntries = 0;
+                    foreach (var entry in archive.Entries)
+                    {
+                        // Combine the destination path with the entry's relative path
+                        string entryDestinationPath = Path.Combine(destinationPath, entry.FullName);
+
+                        // If the entry is a directory, create it
+                        if (entry.FullName.EndsWith("/"))
+                        {
+                            Directory.CreateDirectory(entryDestinationPath);
+                        }
+                        else
+                        {
+                            // Ensure the directory structure for the entry exists
+                            Directory.CreateDirectory(Path.GetDirectoryName(entryDestinationPath));
+
+                            // Extract the entry to the destination path
+                            entry.ExtractToFile(entryDestinationPath, true);
+                        }
+                        processedEntries++;
+                        // Calculate progress percentage
+                        int progressPercentage = totalEntries == 0 ? 100 : (int)((processedEntries * 100) / totalEntries);
+
+                        // Update the progress bar
+                        progressBar.Invoke((MethodInvoker)delegate
+                        {
+                            progressBar.Value = progressPercentage;
+                        });
+                    }
+                }
+                // Cleanup: delete the temporary zip file
+                File.Delete(tempZipFilePath);
             }
         }
         private async Task<bool> UpdateKeyObjectZip( string version,string key )
@@ -374,61 +326,123 @@ namespace VLMS.User_Controls
         }
         private async void PopulateComboBox()
         {
-            var listObjectsRequest = new ListObjectsV2Request
+            if (string.IsNullOrWhiteSpace(bucketName))
             {
-                BucketName = bucketName,
-                Prefix = "VLMS"
-            };
-
-            ListObjectsV2Response response;
-            try
-            {
-                response = await s3Client.ListObjectsV2Async(listObjectsRequest);
-            }
-            catch (AmazonS3Exception ex)
-            {
-                MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                btn_Update.Enabled = false;
+                lbl_processTitle.Text = "Update server not configured.";
+                LogME("Set GATELOG_UPDATE_BUCKET (and GATELOG_UPDATE_REGION) to check for updates.");
                 return;
             }
-            string mainVersion = UpdateManager.GetValue("mainVersion");
-            var objectKeys = new List<string>();
-            foreach (var obj in response.S3Objects)
+            lbl_processTitle.Text = "Checking for updates...";
+            try
             {
-                // Add object key (removing prefix) to the ComboBox
-                var keyWithoutPrefix = obj.Key.Replace("VLMS/", "");
-                var parts = keyWithoutPrefix.Split('/');
-                if (parts.Length >= 2 && !objectKeys.Contains(parts[0])  )
+                var listObjectsRequest = new ListObjectsV2Request
                 {
-                    if(mainVersion != null && string.Compare(parts[0], mainVersion) > 0)
+                    BucketName = bucketName,
+                    Prefix = Global.updatePrefix + "/"
+                };
+                ListObjectsV2Response response = await GetS3Client().ListObjectsV2Async(listObjectsRequest);
+                string mainVersion = UpdateManager.GetValue("mainVersion");
+                var objectKeys = new List<string>();
+                foreach (var obj in response.S3Objects)
+                {
+                    // Keep the version folder name from <prefix>/<version>/<component>.zip
+                    var keyWithoutPrefix = obj.Key.Substring(listObjectsRequest.Prefix.Length);
+                    var parts = keyWithoutPrefix.Split('/');
+                    if (parts.Length >= 2 && !objectKeys.Contains(parts[0]))
                     {
-                        objectKeys.Add(parts[0]); // Add the first folder name (version number) to the HashSet
+                        if (mainVersion != null && Compare(mainVersion, parts[0]))
+                        {
+                            objectKeys.Add(parts[0]);
+                        }
                     }
                 }
+                // Newest release first
+                objectKeys.Sort(( a, b ) => Compare(b, a) ? -1 : (Compare(a, b) ? 1 : 0));
+                btn_Update.Enabled = objectKeys.Count > 0;
+                comboBox1.DataSource = objectKeys;
+                if (objectKeys.Count == 0)
+                {
+                    lbl_processTitle.Text = "No newer release found.";
+                    LogME($"Installed release {mainVersion} is the latest.");
+                }
             }
-            btn_Update.Enabled= objectKeys.Count > 0;
-            comboBox1.DataSource = objectKeys;
+            catch (Exception ex)
+            {
+                btn_Update.Enabled = false;
+                lbl_processTitle.Text = "Update server unavailable.";
+                LogME($"Update server unavailable: {ex.Message}");
+            }
         }
 
         private async void UpdateToThisVersion (string version)
         {
-          await  GetLatestVersionsFromS3(version);
-            List<string> avialableUpdates =    GetNonMatchingKeys();
-            foreach (string key in avialableUpdates)
+            if (string.IsNullOrEmpty(version))
             {
-                string ObjectKey = "VLMS/" + version + "/" + key;
-                await DownloadAndExtractZipFromS3(ObjectKey);
-
+                return;
             }
-            //
+            btn_Update.Enabled = false;
+            try
+            {
+                if (!await GetLatestVersionsFromS3(version))
+                {
+                    return;
+                }
+                List<string> avialableUpdates = GetNonMatchingKeys();
+                foreach (string key in avialableUpdates)
+                {
+                    // Stop the service first so its files can be overwritten, and always restart it
+                    string serviceName = ServiceNameFor(key);
+                    LogME($"Stopping {serviceName} and downloading {key} from release {version} ...");
+                    ServiceManager.StopExistingService(serviceName);
+                    try
+                    {
+                        await DownloadAndExtractZipFromS3(ObjectKeyFor(version, key));
+                        awsDirectory.TryGetValue(key, out var newVersion);
+                        if (newVersion != null)
+                        {
+                            UpdateManager.SetValue(key, newVersion);
+                        }
+                        LogME($"{key} updated to {newVersion}");
+                    }
+                    finally
+                    {
+                        ServiceManager.StartExistingService(serviceName);
+                    }
+                }
+                UpdateManager.SetValue("mainVersion", version);
+                LogME($"Update to release {version} complete.");
+            }
+            catch (Exception ex)
+            {
+                LogME($"Update failed: {ex.Message}");
+            }
+            finally
+            {
+                btn_Update.Enabled = true;
+            }
         }
         private void btn_uninstall_Click( object sender, EventArgs e )
         {
-         
+            MessageBox.Show(
+                "Uninstall is not built into this proof of concept yet." + Environment.NewLine + Environment.NewLine +
+                "To remove Gatelog, run Assets\\uninstaller.ps1 from an elevated PowerShell prompt. " +
+                "It stops and removes the four services and deletes the install folder.",
+                "Uninstall", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-        private void comboBox1_SelectedIndexChanged( object sender, EventArgs e )
+        private async void comboBox1_SelectedIndexChanged( object sender, EventArgs e )
         {
-            
+            // Show current and available component versions for the selected release
+            string? version = comboBox1.SelectedItem as string;
+            if (string.IsNullOrEmpty(version))
+            {
+                return;
+            }
+            if (await GetLatestVersionsFromS3(version))
+            {
+                availableUpdates = GetNonMatchingKeys();
+            }
         }
     }
 }

@@ -85,7 +85,7 @@
             checkBox1.Name = "checkBox1";
             checkBox1.Size = new Size(248, 20);
             checkBox1.TabIndex = 15;
-            checkBox1.Text = "I accept the terms && conditions.";
+            checkBox1.Text = "I have read this notice.";
             checkBox1.UseVisualStyleBackColor = true;
             checkBox1.CheckedChanged += checkBox1_CheckedChanged;
             // 

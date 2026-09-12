@@ -1,4 +1,4 @@
-﻿using Krypton.Toolkit;
+using Krypton.Toolkit;
 using System.Diagnostics;
 using System.IO.Compression;
 namespace VLMS
@@ -12,14 +12,14 @@ namespace VLMS
         private string globalVLMSStoragePath = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
         #endregion
 
-        #region UserControl2 Main 
+        #region UserControl2 Main
         public InstallerControl()
         {
             InitializeComponent();
         }
         private void UserControl2_Load( object sender, EventArgs e )
         {
-            lbl_title.Text = "Please Select Installtion Location";
+            lbl_title.Text = "Please Select Installation Location";
             toggleShow(false);
             progressBar.Visible = false;
             textBox1.Text = globalVLMSStoragePath;
@@ -40,7 +40,7 @@ namespace VLMS
         }
         private void btn_next_Click( object sender, EventArgs e )
         {
-            string pathWithVLMS = Path.Combine(globalVLMSStoragePath, "VLMS");
+            string pathWithVLMS = Path.Combine(globalVLMSStoragePath, Global.installFolderName);
             globalVLMSStoragePath = pathWithVLMS;
             if (!isInstallationStarted)
             {
@@ -54,7 +54,7 @@ namespace VLMS
                 isInstallationStarted = true;
                 btn_continue_finish.Enabled = false;
                 btn_continue_finish.Text = "Finish";
-                lbl_title.Text = "Installing AIVID VLMS, Please wait...";
+                lbl_title.Text = $"Installing {Global.productName}, Please wait...";
                 progressBar.Visible = true;
                 toggleShow(true);
                 _ = RunInstaller();
@@ -96,19 +96,20 @@ namespace VLMS
             {
                   if (!Directory.Exists(Path.Combine(extractPath, filePathExtension)))
                   {
-                    InvokeWriteToEventLog($"Exstracting {filePathExtension} ...");
+                    InvokeWriteToEventLog($"Extracting {filePathExtension} ...");
                     ZipFile.ExtractToDirectory(zipFilePath, extractPath);
-                    InvokeWriteToEventLog($"ZipFile extracted to {extractPath} Successfuly");
+                    InvokeWriteToEventLog($"ZipFile extracted to {extractPath} successfully");
                   }
                    else
                    {
-                       InvokeWriteToEventLog($"{extractPath}/{filePathExtension} Already Exsist So Zip Extraction skipped");
+                       InvokeWriteToEventLog($"{extractPath}\\{filePathExtension} already exists, so zip extraction was skipped");
                    }
 
             }
             catch (Exception ex)
             {
                 InvokeWriteToEventLog($"Error extracting {zipFilePath}: {ex.Message}");
+                throw;
             }
         }
         public void WriteToEventLog( string message )
@@ -164,8 +165,8 @@ namespace VLMS
         {
             isInstallationComplete = true;
             btn_continue_finish.Enabled = true;
-            lbl_title.Text = "Installation Completed For AIVID VLMS";
-            lbl_logs.Text = "Click Finish to Open Vehical Log Mangment System";
+            lbl_title.Text = $"Installation Completed For {Global.productName}";
+            lbl_logs.Text = $"Click Finish to open the {Global.productName} portal";
 
         }
         #endregion
@@ -176,56 +177,59 @@ namespace VLMS
         {
             try
             {
-                
+
                 // Step 1
-                UpdateControls("Extracting MongoDB Server ZIp", 3);
+                UpdateControls("Extracting MongoDB Server Zip", 3);
                 await Task.Run(() => ExtractZip(Global.mongoDBExtensoin));
                 // Step 2
-                UpdateControls("Extracting Mongosh ZIp", 29);
+                UpdateControls("Extracting Mongosh Zip", 29);
                 await Task.Run(() => ExtractZip(Global.mongoshExtensoin));
                 // Step 3
-                UpdateControls("Installing Mqtt Service", 36);
+                UpdateControls("Installing MQTT Service", 36);
                 await Task.Run(() => InstallMQTT());
                 // Step 4
-                UpdateControls("Configuring MongoDB Server ZIp", 49);
+                UpdateControls("Configuring MongoDB Server", 49);
                 await Task.Run(() => ConfigureMongoDB());
                 // Step 5
                 UpdateControls("Creating MongoDBUser", 57);
                 await Task.Run(() => CreateUserInMongoDB());
                 // Step 6
-                UpdateControls("Extracting ANPR NEXT", 64);
+                UpdateControls("Extracting Portal Zip", 64);
                 await Task.Run(() => ExtractZip(Global.portalExtensoin));
                 // Step 7
-                UpdateControls("Extracting BOT VLMS", 81);
+                UpdateControls("Extracting Bot Zip", 81);
                 await Task.Run(() => ExtractZip(Global.botExtensoin));
                 // Step 8
-                UpdateControls("Setting Up Portal services", 93);
-                InstallService("aividPortal", Path.Combine(globalVLMSStoragePath, $"{Global.portalExtensoin}\\vlms") );
-                UpdateControls("Setting Up Portal services", 98);
-                InstallService("aividVLMSBot", Path.Combine(globalVLMSStoragePath, $"{Global.botExtensoin}\\{Global.botExtensoin}") );
+                UpdateControls("Setting up portal service", 93);
+                InstallService(Global.portalServiceName, Path.Combine(globalVLMSStoragePath, $"{Global.portalExtensoin}\\vlms") );
+                UpdateControls("Setting up bot service", 98);
+                InstallService(Global.botServiceName, Path.Combine(globalVLMSStoragePath, $"{Global.botExtensoin}\\{Global.botExtensoin}") );
                 UpdateControls("Installation Complete", 100);
                 WriteToEventLog("-----DONE------");
                 afterInstalltion();
             }
             catch (Exception ex)
             {
-                // Handle the exception, call cleanup function, and log the error with the function name and step number
+                // A step failed: stop here instead of reporting success, and keep Finish disabled.
                 HandleError(ex);
             }
         }
         private void HandleError( Exception ex )
         {
-            // Perform cleanup operations here
-            // Log the error or take any necessary actions
-            WriteToEventLog($"Error occurred in: {ex.Message}");
-
-            // Call cleanup function with the step number
-            return;
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => HandleError(ex)));
+                return;
+            }
+            WriteToEventLog($"Installation stopped at \"{lbl_step.Text}\": {ex.Message}");
+            lbl_title.Text = "Installation failed, see Logs Output";
+            lbl_step.Text = $"Failed: {lbl_step.Text}";
+            btn_continue_finish.Enabled = false;
         }
-     
+
         #endregion
 
-        #region MongoDB 
+        #region MongoDB
         private void ConfigureMongoDB()
         {
             try
@@ -239,16 +243,17 @@ namespace VLMS
                 CreateDirectoryIfNotExists(dataDirectory);
                 CreateDirectoryIfNotExists(mongoLogsDirectory);
                 // Configure MongoDB as a service
-                string installCommand = $"--auth --bind_ip {ipAddress} --port {port} --install -dbpath \"{dataDirectory}\" --logpath \"{mongoLogsDirectory}\\mongodb.log\" --serviceName MongoDB --serviceDisplayName MongoDBAIVID";
+                string installCommand = $"--auth --bind_ip {ipAddress} --port {port} --install -dbpath \"{dataDirectory}\" --logpath \"{mongoLogsDirectory}\\mongodb.log\" --serviceName MongoDB --serviceDisplayName MongoDBGatelog";
                 ExecuteCommandAndLog(installCommand, Path.Combine(mongoBinDirectory, "mongod"), installCommand);
                 // Start MongoDB service
                 string startServiceCommand = "net start MongoDB";
-                ExecuteCommandAndLog("starting MongoDBAIVID service...", "cmd.exe", $"/c {startServiceCommand}");
-    
+                ExecuteCommandAndLog("starting MongoDBGatelog service...", "cmd.exe", $"/c {startServiceCommand}");
+
             }
             catch (Exception ex)
             {
                 InvokeWriteToEventLog(ex.ToString() + Environment.NewLine + ex.StackTrace);
+                throw;
             }
 
         }
@@ -256,19 +261,20 @@ namespace VLMS
         {
             try
             {
-                // Running shell command to load createUser.js file in Mongoshell with admin 
+                // Running shell command to load createUser.js file in Mongoshell with admin
                 string mongoshDirectory = $"{globalVLMSStoragePath}\\{Global.mongoshExtensoin}\\bin";
                 RunMongoshScript(mongoshDirectory, "createUser.js" , "admin");
             }
             catch (Exception ex)
             {
                 InvokeWriteToEventLog(ex.ToString() + Environment.NewLine + ex.StackTrace);
+                throw;
             }
         }
 
         #endregion
 
-        #region LOggers 
+        #region LOggers
 
         private void InvokeWriteToEventLog( string logMessage )
         {
@@ -309,6 +315,7 @@ namespace VLMS
             catch (Exception ex)
             {
                 InvokeWriteToEventLog($"Error: {ex.Message}");
+                throw;
             }
         }
         #endregion
@@ -317,7 +324,8 @@ namespace VLMS
 
         public void InstallService( string serviceName, string prefixServicePathWithName )
         {
-            string nssmPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nssm.exe");
+            // Quoted so the commands still work when the app folder contains spaces
+            string nssmPath = $"\"{Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nssm.exe")}\"";
             try
             {
                 RunCmd($"{nssmPath} install {serviceName} \"{prefixServicePathWithName}.exe\"");
@@ -335,30 +343,32 @@ namespace VLMS
             }
            catch(Exception ex)
             {
-                MessageBox.Show("Error: " + ex.Message + ex.StackTrace );
+                InvokeWriteToEventLog("Error: " + ex.Message);
+                throw;
             }
         }
         public void StartExistingService( string serviceName )
         {
             string nssmPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nssm.exe");
-            RunCmd($" {nssmPath} start {serviceName}");
+            RunCmd($"\"{nssmPath}\" start {serviceName}");
             Thread.Sleep(5000);
         }
         public void StopExistingService( string serviceName )
         {
             string nssmPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nssm.exe");
-            RunCmd($" {nssmPath} stop {serviceName}");
+            RunCmd($"\"{nssmPath}\" stop {serviceName}");
         }
         #endregion
 
-        #region RunCMD Function 
+        #region RunCMD Function
         private void RunCmd( string command )
         {
             Process process = new Process();
             ProcessStartInfo startInfo = new ProcessStartInfo()
             {
                 FileName = "cmd.exe",
-                Arguments = $"/C {command}",  // Add /C flag here
+                // Wrap the whole command in quotes: cmd /C strips the outer pair, keeping inner quoted paths intact
+                Arguments = $"/C \"{command}\"",
                 Verb = "runas",
                 UseShellExecute = false,
                 CreateNoWindow = true,
@@ -366,7 +376,7 @@ namespace VLMS
                 RedirectStandardOutput = true
             };
             process.StartInfo = startInfo;
-        
+
 
             process.Start();
             string strOutput = process.StandardOutput.ReadToEnd();
