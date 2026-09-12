@@ -68,7 +68,8 @@ namespace VLMS
         }
         public static  void StartExistingService(string serviceName)
         {
-            RunCmd($"/C {nssmPath} start {serviceName}");
+            // Outer quotes are stripped by cmd /C; the inner ones keep a path with spaces intact
+            RunCmd($"/C \"\"{nssmPath}\" start {serviceName}\"");
         }
         public static void WaitForServiceToStart( string serviceName , ServiceControllerStatus serviceControllerStatus )
         {
@@ -85,7 +86,7 @@ namespace VLMS
 
         public static void StopExistingService(string serviceName)
         {
-            RunCmd($"/C {nssmPath} stop {serviceName}");
+            RunCmd($"/C \"\"{nssmPath}\" stop {serviceName}\"");
         }
         public static bool IsPresentInSystem(string servicename)
         {
@@ -131,7 +132,7 @@ namespace VLMS
         public static void RemoveFromWindowsService(string serviceName)
         {
             StopExistingService(serviceName);
-            RunCmd($"/C {nssmPath} remove {serviceName} confirm");
+            RunCmd($"/C \"\"{nssmPath}\" remove {serviceName} confirm\"");
         }
     }
 }
