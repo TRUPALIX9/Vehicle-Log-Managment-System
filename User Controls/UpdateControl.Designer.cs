@@ -139,7 +139,7 @@ namespace VLMS.User_Controls
             kryptonRichTextBox1.Name = "kryptonRichTextBox1";
             kryptonRichTextBox1.Size = new Size(642, 136);
             kryptonRichTextBox1.TabIndex = 20;
-            kryptonRichTextBox1.Text = "kryptonRichTextBox1";
+            kryptonRichTextBox1.Text = "";
             // 
             // progressBar
             // 
@@ -155,7 +155,7 @@ namespace VLMS.User_Controls
             lbl_processTitle.Name = "lbl_processTitle";
             lbl_processTitle.Size = new Size(19, 15);
             lbl_processTitle.TabIndex = 22;
-            lbl_processTitle.Text = "....";
+            lbl_processTitle.Text = "";
             // 
             // comboBox1
             // 
