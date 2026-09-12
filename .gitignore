@@ -1,0 +1,26 @@
+# Visual Studio / .NET
+.vs/
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+[Dd]ebug/
+[Rr]elease/
+*.pubxml.user
+publish/
+app.publish/
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Installer payloads (third-party binaries and proprietary zips are not committed)
+Setups/*
+!Setups/EULA.docx
+
+# OS
+.DS_Store
+Thumbs.db
