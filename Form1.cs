@@ -1,5 +1,6 @@
 ﻿using Microsoft.Win32;
 using VLMS.Class;
+using VLMS.User_Controls;
 
 namespace VLMS
 {
@@ -10,6 +11,11 @@ namespace VLMS
         public Form1()
         {
             InitializeComponent();
+            // The step controls are not created by the designer, so create them here
+            // before wiring events; otherwise startup throws a NullReferenceException.
+            eulaControl1 = new EULAControl();
+            InstallerControl1 = new InstallerControl();
+            UpdateContol = new UpdateControl();
             eulaControl1.NextButtonClicked += UserControl1_NextButtonClicked;
         }
         private bool mouseDown;
@@ -21,8 +27,13 @@ namespace VLMS
 
             if (SetIsInstalledSetting())
             {
+                // Resolve the real install path first: the Update step reads config.json from it on load.
+                UpdateManager.GetServiceStartupPath("MongoDB");
                 ShowUserControl(UpdateContol);
-                string basePath = UpdateManager.GetServiceStartupPath("MongoDB");
+            }
+            else
+            {
+                ShowUserControl(eulaControl1);
             }
         }
         #endregion
